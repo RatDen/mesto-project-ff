@@ -1,6 +1,6 @@
 import './pages/index.css';
 import { initialCards } from './scripts/cards.js';
-import { createCard } from './scripts/card.js';
+import { createCard, deleteCard, handleLike } from './scripts/card.js';
 import { openModal, closeModal } from './scripts/modal.js';
 
 const cardsContainer = document.querySelector('.places__list');
@@ -23,66 +23,68 @@ const editProfileForm = editModal.querySelector('.popup__form');
 const profileNameInput = editProfileForm.querySelector('.popup__input_type_name');
 const profileDescriptionInput = editProfileForm.querySelector('.popup__input_type_description');
 
-const addCardForm = addCardModal.querySelector('.popup__form')
+const addCardForm = addCardModal.querySelector('.popup__form');
+const addCardFormInputs = addCardForm.querySelectorAll('input');
 
 // Поля профиля
 const profileName = document.querySelector('.profile__title');
 const profileDescription = document.querySelector('.profile__description');
 
+// поля формы добавления карт
+const cardNameInput = addCardForm.querySelector('.popup__input_type_card-name');
+const cardLinkInput = addCardForm.querySelector('.popup__input_type_url');
+
 // handlers
 function handleEditProfile(evt) {
     evt.preventDefault();
 
-    // Получите значение полей jobInput и nameInput из свойства value
-    const name = evt.target.querySelector('.popup__input_type_name').value;
-    const description = evt.target.querySelector('.popup__input_type_description').value;
-
     // Вставьте новые значения с помощью textContent
-    profileName.textContent = name;
-    profileDescription.textContent = description;
+    profileName.textContent = profileNameInput.value;
+    profileDescription.textContent = profileDescriptionInput.value;
 
     closeModal(editModal);
-
-    profileNameInput.value = profileName.textContent;
-    profileDescriptionInput.value = profileDescription.textContent;
 }
 
 function handleAddCard(evt) {
     evt.preventDefault();
 
-    const name = evt.target.querySelector('.popup__input_type_card-name').value;
-    const link = evt.target.querySelector('.popup__input_type_url').value;
-
-    let card = {
-        name: name,
-        link: link
+    const card = {
+        name: cardNameInput.value,
+        link: cardLinkInput.value
     }
 
-    cardsContainer.prepend(createCard(card, cardTemplate, handleLike, handleOpenCardModal));
+    cardsContainer.prepend(createCard(card, cardTemplate, deleteCard, handleLike, handleOpenCardModal));
 
     closeModal(addCardModal);
-}
 
-function handleLike(event) {
-    console.log(event.target);
-    event.target.classList.add('card__like-button_is-active');
+    addCardFormInputs.forEach(input => {input.value = ''});
 }
 
 function handleOpenCardModal(event) {
     imageModalImage.src = event.target.src;
+    imageModalImage.alt = event.target.alt;
     imageModalText.textContent = event.target.alt;
 
     openModal(imageModal);
 }
 
 // Вывести карточки на страницу
-initialCards.forEach((item) => cardsContainer.append(createCard(item, cardTemplate, handleLike, handleOpenCardModal)));
+initialCards.forEach((item) => cardsContainer.append(createCard(item, cardTemplate, deleteCard, handleLike, handleOpenCardModal)));
 
-// дефолтное значение полей профиля
-profileNameInput.value = profileName.textContent;
-profileDescriptionInput.value = profileDescription.textContent;
+// закрытие попапов по клику на оверлей
+document.querySelectorAll('.popup').forEach(popup => {
+    popup.addEventListener('click', event => {
+        if (event.target === event.currentTarget) {
+            closeModal(event.target);
+        }
+    })
+}) 
 
 // открытие модальных окон
+profileEditButton.addEventListener('click', () => {
+    profileNameInput.value = profileName.textContent;
+    profileDescriptionInput.value = profileDescription.textContent;
+})
 profileEditButton.addEventListener('click', () => openModal(editModal));
 profileAddButton.addEventListener('click', () => openModal(addCardModal));
 
