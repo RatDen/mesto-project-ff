@@ -1,13 +1,11 @@
 export function openModal(modal) {
     modal.classList.add('popup_is-opened');
     window.addEventListener('keydown', closeOnEsc);
-    modal.addEventListener('click', closeOnOverlayClick.bind(null, modal));
 }
 
 export function closeModal(modal) {
     modal.classList.remove('popup_is-opened');
-    window.removeEventListener('keydown', closeOnEsc);
-    modal.removeEventListener('click', closeOnOverlayClick);
+    window.removeEventListener('keydown', closeOnEsc);;
 }
 
 function closeOnEsc(event) {

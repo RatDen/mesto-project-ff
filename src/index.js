@@ -57,7 +57,7 @@ function handleAddCard(evt) {
 
     closeModal(addCardModal);
 
-    addCardFormInputs.forEach(input => {input.value = ''});
+    addCardForm.reset();
 }
 
 function handleOpenCardModal(event) {
@@ -84,8 +84,8 @@ document.querySelectorAll('.popup').forEach(popup => {
 profileEditButton.addEventListener('click', () => {
     profileNameInput.value = profileName.textContent;
     profileDescriptionInput.value = profileDescription.textContent;
-})
-profileEditButton.addEventListener('click', () => openModal(editModal));
+    openModal(editModal);
+});
 profileAddButton.addEventListener('click', () => openModal(addCardModal));
 
 // закрытие модальных окон
