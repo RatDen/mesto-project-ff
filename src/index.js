@@ -1,14 +1,18 @@
 import './pages/index.css';
-import { createCard, handleDeleteCard, handleLike } from './scripts/card.js';
-import { openModal, closeModal } from './scripts/modal.js';
-import { clearValidation, enableValidation } from './scripts/validation.js'
 import { getUserProfile, getCards, saveUserProfile, saveCard, editUserProfileAvatar } from './scripts/api.js';
+import { createCard, handleDeleteCard, handleLike } from './scripts/card.js';
+import { openModal, closeModal, closeOnOverlayClick } from './scripts/modal.js';
+import { clearValidation, enableValidation } from './scripts/validation.js'
 
-const loginInfo = {
-    url: 'https://nomoreparties.co/v1/',
-    group: 'wff-cohort-11',
-    token: '7067014e-808a-4e5e-8222-98d5ce1556a4',
-    userId: null
+const userInfo = {};
+
+const FORM_SELECTORS = {
+    formSelector: '.popup__form',
+    inputSelector: '.popup__input',
+    submitButtonSelector: 'button[type="submit"]',
+    inactiveButtonClass: 'popup__button_disabled',
+    inputErrorClass: 'popup__input_type_error',
+    errorClass: 'popup__error_visible'
 }
 
 const cardsContainer = document.querySelector('.places__list');
@@ -62,10 +66,15 @@ function handleEditProfileAvatar(evt) {
 
     editProfileAvatarButton.textContent = 'Сохранение...';
 
-    editUserProfileAvatar(loginInfo, editProfileAvatarInput.value)
-    .then(user => setUserProfile(user))
-    .then(() => {
+    editUserProfileAvatar(editProfileAvatarInput.value)
+    .then(user => {
+        setUserProfile(user);
         closeModal(editProfileAvatarModal);
+    })
+    .catch((err) => { 
+        console.log(err); 
+    })
+    .finally(() => {
         editProfileAvatarButton.textContent = 'Сохранить';
     })
 }
@@ -79,10 +88,15 @@ function handleEditProfileName(evt) {
 
     editProfileNameButton.textContent = 'Сохранение...';
 
-    saveUserProfile(loginInfo, {name: profileNameInput.value, about: profileDescriptionInput.value})
-    .then(user => setUserProfile(user))
-    .then(() => {
+    saveUserProfile({name: profileNameInput.value, about: profileDescriptionInput.value})
+    .then(user => {
+        setUserProfile(user);
         closeModal(editProfileNameModal);
+    })
+    .catch((err) => { 
+        console.log(err); 
+    })
+    .finally(() => {
         editProfileNameButton.textContent = 'Сохранить';
     })
 }
@@ -97,15 +111,20 @@ function handleAddCard(evt) {
 
     addCardButton.textContent = 'Сохранение...';
 
-    saveCard(loginInfo, card)
+    saveCard(card)
     .then(card => {
-        cardsContainer.prepend(createCard(card, cardTemplate, handleOpenConfirmModal, handleLike, handleOpenCardModal, loginInfo));
+        cardsContainer.prepend(createCard(card, cardTemplate, handleOpenConfirmModal, handleLike, handleOpenCardModal, userInfo.id));
 
         closeModal(addCardModal);
 
-        addCardButton.textContent = 'Сохранить';
         addCardForm.reset();
-        clearValidation(addCardModal);
+        clearValidation(addCardModal, FORM_SELECTORS);
+    })
+    .catch((err) => { 
+        console.log(err); 
+    })
+    .finally(() => {
+        addCardButton.textContent = 'Сохранить';
     })
 }
 
@@ -130,17 +149,13 @@ function setUserProfile(user) {
     profileName.textContent = user.name;
     profileDescription.textContent = user.about;
     profileImage.style.backgroundImage = `url(${user.avatar})`;
-    loginInfo.userId = user._id;
+    userInfo.id = user._id;
 }
 
 // закрытие попапов по клику на оверлей
 document.querySelectorAll('.popup').forEach(popup => {
-    popup.addEventListener('click', event => {
-        if (event.target === event.currentTarget) {
-            closeModal(event.target);
-        }
-    })
-})
+    popup.addEventListener('click', event => closeOnOverlayClick(event));
+});
 
 // открытие модальных окон
 profileAvatarEdit.addEventListener('click', () => openModal(editProfileAvatarModal));
@@ -148,15 +163,17 @@ profileNameEditButton.addEventListener('click', () => {
     profileNameInput.value = profileName.textContent;
     profileDescriptionInput.value = profileDescription.textContent;
 
-    clearValidation(editProfileNameModal);
+    clearValidation(editProfileNameModal, FORM_SELECTORS);
     openModal(editProfileNameModal);
 });
 profileAddButton.addEventListener('click', () => openModal(addCardModal));
 
 // закрытие модальных окон
-document.querySelectorAll('.popup__close').forEach(button => button.addEventListener('click', evt => {
-    closeModal(evt.target.closest('.popup'));
-}))
+document.querySelectorAll('.popup__close').forEach(button => {
+    button.addEventListener('click', evt => {
+        closeModal(evt.target.closest('.popup'));
+    })
+})
 
 // ивенты форм
 editProfileAvatarButton.addEventListener('click', handleEditProfileAvatar)
@@ -166,7 +183,7 @@ addCardForm.addEventListener('submit', handleAddCard);
 confirmModalButton.addEventListener('click', evt => {
     evt.preventDefault();
 
-    handleDeleteCard(evt.target.dataset.targetId, loginInfo);
+    handleDeleteCard(evt.target.dataset.targetId, userInfo.id);
 
     evt.target.dataset.targetId = '';
 
@@ -176,17 +193,21 @@ confirmModalButton.addEventListener('click', evt => {
 // Конечная обработка контента
 
 // Подключение валидации
-Array.from(document.forms).forEach(form => enableValidation(form))
+enableValidation(FORM_SELECTORS);
 
 // Загрузка профиля и карточек
 Promise.all([
-    getUserProfile(loginInfo),
-    getCards(loginInfo)
+    getUserProfile(),
+    getCards()
 
-]).then(results => {
+])
+.then(([user, cards]) => {
     // Вывод данных о пользователе
-    setUserProfile(results[0])
+    setUserProfile(user);
 
     // Вывод карточек
-    results[1].forEach(card => cardsContainer.append(createCard(card, cardTemplate, handleOpenConfirmModal, handleLike, handleOpenCardModal, loginInfo)))
+    cards.forEach(card => cardsContainer.append(createCard(card, cardTemplate, handleOpenConfirmModal, handleLike, handleOpenCardModal, userInfo.id)));
+})
+.catch((err) => { 
+    console.log(err); 
 })
